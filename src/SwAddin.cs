@@ -249,7 +249,8 @@ namespace SwPrototypeExporter
         private static IconFileSet EnsureIconFiles()
         {
             string iconDirectory = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                "SwPrototypeExporter",
                 "icons");
 
             if (!Directory.Exists(iconDirectory))

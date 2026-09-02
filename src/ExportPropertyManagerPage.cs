@@ -5,7 +5,6 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using SolidWorks.Interop.sldworks;
@@ -360,8 +359,10 @@ namespace SwPrototypeExporter
 
         private static HelpIconFileSet EnsureTemporaryHelpIconFiles()
         {
-            string assemblyDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            string iconDirectory = Path.Combine(assemblyDirectory, "icons");
+            string iconDirectory = Path.Combine(
+                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+                "SwPrototypeExporter",
+                "icons");
             Directory.CreateDirectory(iconDirectory);
 
             string colorPath = Path.Combine(iconDirectory, "temporary-export-help.bmp");

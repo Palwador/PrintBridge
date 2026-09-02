@@ -76,7 +76,7 @@ Install Inno Setup 6 on the packaging machine, close SOLIDWORKS, then run:
 The installer is written to:
 
 ```text
-dist\PrintBridgeSetup-0.1.0.exe
+dist\PrintBridgeSetup-0.1.1.exe
 ```
 
 Upload that `.exe` to a GitHub Release. Users should download the installer, run it, open SOLIDWORKS, and enable `PrintBridge` in:
