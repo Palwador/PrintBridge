@@ -20,7 +20,7 @@ namespace SwPrototypeExporter
                 LaunchSlicer = true
             };
 
-            string path = SettingsPath;
+            string path = AppPaths.SettingsPath;
             if (!File.Exists(path))
             {
                 return settings;
@@ -72,13 +72,13 @@ namespace SwPrototypeExporter
 
         public void Save()
         {
-            string directory = Path.GetDirectoryName(SettingsPath);
+            string directory = Path.GetDirectoryName(AppPaths.SettingsPath);
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            File.WriteAllLines(SettingsPath, new[]
+            File.WriteAllLines(AppPaths.SettingsPath, new[]
             {
                 "ExportDirectory=" + (ExportDirectory ?? string.Empty),
                 "SlicerPath=" + (SlicerPath ?? string.Empty),
@@ -88,15 +88,5 @@ namespace SwPrototypeExporter
             });
         }
 
-        private static string SettingsPath
-        {
-            get
-            {
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "SwPrototypeExporter",
-                    "settings.ini");
-            }
-        }
     }
 }

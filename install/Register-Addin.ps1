@@ -4,7 +4,9 @@ param(
 
     [string]$AssemblyPath,
 
-    [string]$UserSid
+    [string]$UserSid,
+
+    [switch]$StartOnOpen
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,6 +39,10 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
         $arguments += @("-AssemblyPath", "`"$AssemblyPath`"")
     }
 
+    if ($StartOnOpen) {
+        $arguments += "-StartOnOpen"
+    }
+
     Start-Process -FilePath "powershell.exe" -Verb RunAs -ArgumentList $arguments
     Write-Host "Opened an Administrator PowerShell window. Approve the UAC prompt to finish registering the add-in."
     return
@@ -58,4 +64,6 @@ if (-not (Test-Path -LiteralPath $regAsm)) {
 
 & $regAsm $AssemblyPath /codebase
 
-Set-StartupFlagForUser -Sid $UserSid
+if ($StartOnOpen) {
+    Set-StartupFlagForUser -Sid $UserSid
+}

@@ -248,10 +248,7 @@ namespace SwPrototypeExporter
 
         private static IconFileSet EnsureIconFiles()
         {
-            string iconDirectory = Path.Combine(
-                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                "SwPrototypeExporter",
-                "icons");
+            string iconDirectory = AppPaths.IconDirectory;
 
             if (!Directory.Exists(iconDirectory))
             {
@@ -495,10 +492,7 @@ namespace SwPrototypeExporter
         {
             get
             {
-                return Path.Combine(
-                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                    "SwPrototypeExporter",
-                    "addin.log");
+                return AppPaths.LogPath;
             }
         }
 

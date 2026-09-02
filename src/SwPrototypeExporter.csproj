@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="AppPaths.cs" />
     <Compile Include="BodyExportItem.cs" />
     <Compile Include="ExportDialog.cs" />
     <Compile Include="ExportPropertyManagerPage.cs" />

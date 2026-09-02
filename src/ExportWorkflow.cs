@@ -370,12 +370,30 @@ namespace SwPrototypeExporter
             var selectedBody = selected as Body2;
             Component2 selectedComponent = null;
 
+            var selectedFace = selected as Face2;
+            if (selectedFace != null)
+            {
+                selectedBody = selectedFace.GetBody() as Body2;
+            }
+
             if (model.GetType() == (int)swDocumentTypes_e.swDocASSEMBLY)
             {
                 selectedComponent = selected as Component2;
                 if (selectedComponent == null)
                 {
                     selectedComponent = selection.GetSelectedObjectsComponent3(1, -1);
+                }
+
+                var selectedEntity = selected as Entity;
+                if (selectedComponent == null && selectedEntity != null)
+                {
+                    try
+                    {
+                        selectedComponent = selectedEntity.GetComponent() as Component2;
+                    }
+                    catch
+                    {
+                    }
                 }
             }
 
@@ -458,7 +476,7 @@ namespace SwPrototypeExporter
 
         private static string GetTemporaryExportDirectory()
         {
-            string directory = Path.Combine(Path.GetTempPath(), "SwPrototypeExporter", "Exports");
+            string directory = AppPaths.TemporaryExportDirectory;
             Directory.CreateDirectory(directory);
             return directory;
         }
@@ -883,10 +901,7 @@ namespace SwPrototypeExporter
         {
             get
             {
-                return Path.Combine(
-                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                    "SwPrototypeExporter",
-                    "addin.log");
+                return AppPaths.LogPath;
             }
         }
     }

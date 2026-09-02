@@ -207,6 +207,7 @@ namespace SwPrototypeExporter
                 _launchSlicerCheck.Checked = _context.Settings.LaunchSlicer;
                 _useTemporaryFileCheck.Checked = _context.Settings.UseTemporaryFile;
                 PopulateSlicers(_context.Settings.SlicerPath);
+                SeedBodySelectionFromContext();
 
                 SyncControlsFromSelection();
                 UpdateOutputControlState();
@@ -215,6 +216,23 @@ namespace SwPrototypeExporter
             finally
             {
                 _updatingControls = false;
+            }
+        }
+
+        private void SeedBodySelectionFromContext()
+        {
+            if (_context.InitiallySelectedBody == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _context.Bodies.Count; i++)
+            {
+                if (ReferenceEquals(_context.Bodies[i], _context.InitiallySelectedBody))
+                {
+                    _selectedIndices.Add(i);
+                    return;
+                }
             }
         }
 
@@ -359,10 +377,7 @@ namespace SwPrototypeExporter
 
         private static HelpIconFileSet EnsureTemporaryHelpIconFiles()
         {
-            string iconDirectory = Path.Combine(
-                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                "SwPrototypeExporter",
-                "icons");
+            string iconDirectory = AppPaths.IconDirectory;
             Directory.CreateDirectory(iconDirectory);
 
             string colorPath = Path.Combine(iconDirectory, "temporary-export-help.bmp");
@@ -723,14 +738,6 @@ namespace SwPrototypeExporter
             }
             finally
             {
-                try
-                {
-                    _context.Model.ClearSelection2(true);
-                }
-                catch
-                {
-                }
-
                 _handlingDocumentSelection = false;
             }
 

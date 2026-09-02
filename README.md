@@ -15,7 +15,8 @@ A SOLIDWORKS add-in for a faster prototype loop:
 - `src/ExportWorkflow.cs` - Body discovery, versioned filename generation, export, and slicer launch.
 - `src/ExportDialog.cs` - Small Windows Forms dialog for body, format, folder, and slicer choices.
 - `src/SlicerDiscovery.cs` - Finds installed slicers from common install folders and Windows uninstall registry entries.
-- `src/SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\SwPrototypeExporter`.
+- `src\AppPaths.cs` - Centralizes runtime paths under `%APPDATA%\PrintBridge`.
+- `src/SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\PrintBridge`.
 - `install/Register-Addin.ps1` - Registers the compiled DLL with COM/SOLIDWORKS.
 - `install/Unregister-Addin.ps1` - Unregisters the add-in.
 - `install/Package-Installer.ps1` - Builds a Release DLL and packages a Windows installer.
@@ -23,7 +24,7 @@ A SOLIDWORKS add-in for a faster prototype loop:
 
 ## Requirements
 
-- SOLIDWORKS installed locally.
+- SOLIDWORKS installed locally. This project is set up for SOLIDWORKS 2025 x64 on this workstation.
 - Visual Studio with .NET Framework 4.8 targeting support.
 - Administrator PowerShell for add-in registration, because SOLIDWORKS add-ins are registered under HKLM.
 
@@ -65,6 +66,12 @@ Then open SOLIDWORKS and enable `PrintBridge` in:
 Tools > Add-Ins
 ```
 
+That registration command does not force the add-in to start automatically. To register it and also check the SOLIDWORKS `Start Up` flag for the current user, run:
+
+```powershell
+.\install\Register-Addin.ps1 -Configuration Release -StartOnOpen
+```
+
 ## Package an Installer
 
 Install Inno Setup 6 on the packaging machine, close SOLIDWORKS, then run:
@@ -85,13 +92,13 @@ Upload that `.exe` to a GitHub Release. Users should download the installer, run
 Tools > Add-Ins
 ```
 
-The installer copies the add-in to `Program Files`, registers it as a 64-bit COM/SOLIDWORKS add-in, and adds an uninstaller under Windows Apps & Features. It does not force the add-in to start automatically; users can check the `Start Up` box in SOLIDWORKS Add-Ins if they want that.
+The installer copies the add-in to `Program Files`, registers it as a 64-bit COM/SOLIDWORKS add-in, and adds an uninstaller under Windows Apps & Features. It does not force the add-in to start automatically; users can check the `Start Up` box in SOLIDWORKS Add-Ins if they want that. Settings, logs, generated toolbar bitmaps, and temporary export files are written under `%APPDATA%\PrintBridge`, not beside the installed DLL.
 
 ## Use
 
 1. Open a part document.
 2. Click `PrintBridge` from the add-in toolbar/menu.
-3. Check one or more bodies, choose the output format, destination folder, file name, and slicer app.
+3. Check one or more bodies, or click bodies in the graphics area to sync the checkboxes, then choose the output format, destination folder, file name, and slicer app.
 4. Click the green checkmark.
 
 The add-in suggests the next available versioned filename in the destination folder. You can edit it before exporting. For example:
