@@ -35,6 +35,10 @@ if ($env:ProgramFiles) {
     $innoCandidates += (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe")
 }
 
+if ($env:LOCALAPPDATA) {
+    $innoCandidates += (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe")
+}
+
 $iscc = $innoCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $iscc) {
     throw "Inno Setup 6 compiler (ISCC.exe) was not found. Install Inno Setup 6, then run this script again."

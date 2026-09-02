@@ -37,10 +37,9 @@ Source: "..\src\bin\x64\Release\assets\*"; DestDir: "{app}\assets"; Flags: ignor
 Root: HKLM64; Subkey: "SOFTWARE\SOLIDWORKS\Addins\{#AddinGuid}"; ValueType: dword; ValueName: ""; ValueData: "1"; Flags: uninsdeletekey
 Root: HKLM64; Subkey: "SOFTWARE\SOLIDWORKS\Addins\{#AddinGuid}"; ValueType: string; ValueName: "Title"; ValueData: "PrintBridge"
 Root: HKLM64; Subkey: "SOFTWARE\SOLIDWORKS\Addins\{#AddinGuid}"; ValueType: string; ValueName: "Description"; ValueData: "Exports selected SOLIDWORKS bodies as STL or STEP and opens them in your slicer."
-Root: HKCU; Subkey: "Software\SOLIDWORKS\AddInsStartup\{#AddinGuid}"; ValueType: dword; ValueName: ""; ValueData: "0"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: """{app}\SwPrototypeExporter.dll"" /codebase"; Flags: runhidden waituntilterminated; StatusMsg: "Registering the SOLIDWORKS add-in..."
 
 [UninstallRun]
-Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: """{app}\SwPrototypeExporter.dll"" /unregister"; Flags: runhidden waituntilterminated
+Filename: "{win}\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"; Parameters: """{app}\SwPrototypeExporter.dll"" /unregister"; Flags: runhidden waituntilterminated; RunOnceId: "UnregisterPrintBridge"
