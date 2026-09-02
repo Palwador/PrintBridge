@@ -1,6 +1,6 @@
-# Export to 3D-printer
+# PrintBridge
 
-A starter SOLIDWORKS add-in for a faster prototype loop:
+A SOLIDWORKS add-in for a faster prototype loop:
 
 1. Click a dedicated SOLIDWORKS command.
 2. Pick a solid body from the active part or from a resolved component in the active assembly.
@@ -19,7 +19,7 @@ A starter SOLIDWORKS add-in for a faster prototype loop:
 - `install/Register-Addin.ps1` - Registers the compiled DLL with COM/SOLIDWORKS.
 - `install/Unregister-Addin.ps1` - Unregisters the add-in.
 - `install/Package-Installer.ps1` - Builds a Release DLL and packages a Windows installer.
-- `installer/ExportTo3DPrinter.iss` - Inno Setup definition for the distributable installer.
+- `installer/PrintBridge.iss` - Inno Setup definition for the distributable installer.
 
 ## Requirements
 
@@ -59,7 +59,7 @@ Open PowerShell as Administrator from the repository root and run:
 .\install\Register-Addin.ps1 -Configuration Release
 ```
 
-Then open SOLIDWORKS and enable `Export to 3D-printer` in:
+Then open SOLIDWORKS and enable `PrintBridge` in:
 
 ```text
 Tools > Add-Ins
@@ -76,10 +76,10 @@ Install Inno Setup 6 on the packaging machine, close SOLIDWORKS, then run:
 The installer is written to:
 
 ```text
-dist\ExportTo3DPrinterSetup-0.1.0.exe
+dist\PrintBridgeSetup-0.1.0.exe
 ```
 
-Upload that `.exe` to a GitHub Release. Users should download the installer, run it, open SOLIDWORKS, and enable `Export to 3D-printer` in:
+Upload that `.exe` to a GitHub Release. Users should download the installer, run it, open SOLIDWORKS, and enable `PrintBridge` in:
 
 ```text
 Tools > Add-Ins
@@ -90,7 +90,7 @@ The installer copies the add-in to `Program Files`, registers it as a 64-bit COM
 ## Use
 
 1. Open a part document.
-2. Click `Export to 3D-printer` from the add-in toolbar/menu.
+2. Click `PrintBridge` from the add-in toolbar/menu.
 3. Check one or more bodies, choose the output format, destination folder, file name, and slicer app.
 4. Click the green checkmark.
 

@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $assemblyInfoPath = Join-Path $repoRoot "src\AssemblyInfo.cs"
-$installerScriptPath = Join-Path $repoRoot "installer\ExportTo3DPrinter.iss"
+$installerScriptPath = Join-Path $repoRoot "installer\PrintBridge.iss"
 $distPath = Join-Path $repoRoot "dist"
 
 if (-not $Version) {
@@ -44,5 +44,5 @@ New-Item -ItemType Directory -Force -Path $distPath | Out-Null
 
 & $iscc "/DAppVersion=$Version" $installerScriptPath
 
-$installerPath = Join-Path $distPath "ExportTo3DPrinterSetup-$Version.exe"
+$installerPath = Join-Path $distPath "PrintBridgeSetup-$Version.exe"
 Write-Host "Installer created: $installerPath"

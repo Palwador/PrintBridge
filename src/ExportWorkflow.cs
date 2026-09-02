@@ -19,7 +19,7 @@ namespace SwPrototypeExporter
 
     internal sealed class ExportWorkflow
     {
-        internal const string DialogTitle = "Export to 3D-printer";
+        internal const string DialogTitle = "PrintBridge";
         private readonly ISldWorks _swApp;
 
         public ExportWorkflow(ISldWorks swApp)

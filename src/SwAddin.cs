@@ -21,9 +21,9 @@ namespace SwPrototypeExporter
     {
         private const int CommandGroupId = 1001;
         private const int ExportCommandItemId = 0;
-        private const string AddinTitle = "Export to 3D-printer";
+        private const string AddinTitle = "PrintBridge";
         private const string LegacyAddinTitle = "Prototype Exporter";
-        private const string AddinDescription = "Exports selected bodies as STL or STEP and opens them in your slicer.";
+        private const string AddinDescription = "Exports selected SOLIDWORKS bodies as STL or STEP and opens them in your slicer.";
 
         private ISldWorks _swApp;
         private ICommandManager _commandManager;
@@ -61,7 +61,7 @@ namespace SwPrototypeExporter
             catch (Exception ex)
             {
                 Log("Fallback menu setup failed: " + ex);
-                MessageBox.Show("Export to 3D-printer loaded, but SolidWorks did not accept the menu command. Details were written to:\r\n" + LogPath, AddinTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("PrintBridge loaded, but SolidWorks did not accept the menu command. Details were written to:\r\n" + LogPath, AddinTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return true;
             }
 
@@ -149,10 +149,10 @@ namespace SwPrototypeExporter
 
             int itemType = (int)swCommandItemType_e.swToolbarItem;
             commandGroup.AddCommandItem2(
-                "Export to 3D-printer",
+                "PrintBridge",
                 -1,
                 "Export selected bodies for 3D printing",
-                "Export to 3D-printer",
+                "PrintBridge",
                 0,
                 "ExportBodyToSlicer",
                 "EnableExportBodyToSlicer",
@@ -218,7 +218,7 @@ namespace SwPrototypeExporter
             _swApp.AddMenuItem3(
                 (int)swDocumentTypes_e.swDocNONE,
                 _addinId,
-                "Export to 3D-printer@&Tools",
+                "PrintBridge@&Tools",
                 -1,
                 "ExportBodyToSlicer",
                 "AlwaysEnableExportBodyToSlicer",
@@ -228,7 +228,7 @@ namespace SwPrototypeExporter
             _swApp.AddMenuItem3(
                 (int)swDocumentTypes_e.swDocASSEMBLY,
                 _addinId,
-                "Export to 3D-printer@&Tools",
+                "PrintBridge@&Tools",
                 -1,
                 "ExportBodyToSlicer",
                 "AlwaysEnableExportBodyToSlicer",
@@ -238,7 +238,7 @@ namespace SwPrototypeExporter
             _swApp.AddMenuItem3(
                 (int)swDocumentTypes_e.swDocPART,
                 _addinId,
-                "Export to 3D-printer@&Tools",
+                "PrintBridge@&Tools",
                 -1,
                 "ExportBodyToSlicer",
                 "AlwaysEnableExportBodyToSlicer",

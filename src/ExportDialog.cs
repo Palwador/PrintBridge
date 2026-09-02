@@ -25,7 +25,7 @@ namespace SwPrototypeExporter
         {
             _modelPath = modelPath;
 
-            Text = "Export to 3D-printer";
+            Text = "PrintBridge";
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
