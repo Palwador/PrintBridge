@@ -132,6 +132,8 @@ namespace SwPrototypeExporter
                 return;
             }
 
+            // The command group is SOLIDWORKS' native way to expose add-in commands in toolbars
+            // and the Customize dialog. PrintBridge has one command, so the group is toolbar-only.
             int errors = 0;
             var commandGroup = _commandManager.CreateCommandGroup2(
                 CommandGroupId,
@@ -186,6 +188,8 @@ namespace SwPrototypeExporter
 
         private void AddCommandToBuiltInTabs(int exportCommandId)
         {
+            // Users asked for the button to appear on familiar built-in tabs instead of a dedicated
+            // PrintBridge tab that SOLIDWORKS might make active on startup.
             AddCommandToExistingCommandTab((int)swDocumentTypes_e.swDocPART, "Features", exportCommandId);
             AddCommandToExistingCommandTab((int)swDocumentTypes_e.swDocASSEMBLY, "Assembly", exportCommandId);
         }
@@ -273,6 +277,8 @@ namespace SwPrototypeExporter
                 return;
             }
 
+            // Keep a Tools menu entry as a fallback in case automatic CommandManager placement is
+            // unavailable in a particular SOLIDWORKS layout or version.
             _swApp.AddMenuItem3(
                 (int)swDocumentTypes_e.swDocNONE,
                 _addinId,

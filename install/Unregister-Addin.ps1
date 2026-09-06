@@ -17,6 +17,8 @@ if (-not $UserSid) {
 function Remove-StartupFlagForUser {
     param([string]$Sid)
 
+    # Remove only the per-user startup preference. RegAsm below handles the
+    # machine-wide COM/SOLIDWORKS registration.
     try {
         [Microsoft.Win32.Registry]::Users.DeleteSubKey("$Sid\Software\SOLIDWORKS\AddInsStartup\$addinGuid", $false)
     }
@@ -26,6 +28,8 @@ function Remove-StartupFlagForUser {
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    # COM/SOLIDWORKS add-in registration lives under HKLM, so unregistering also
+    # needs an elevated PowerShell session.
     $scriptPath = $MyInvocation.MyCommand.Path
     $arguments = @(
         "-NoExit",

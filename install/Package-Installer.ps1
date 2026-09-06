@@ -10,6 +10,8 @@ $installerScriptPath = Join-Path $repoRoot "installer\PrintBridge.iss"
 $distPath = Join-Path $repoRoot "dist"
 
 if (-not $Version) {
+    # Public builds use the assembly file version by default, while test builds
+    # can pass an explicit suffix such as 0.1.4-test1.
     $assemblyInfo = Get-Content -LiteralPath $assemblyInfoPath -Raw
     if ($assemblyInfo -match 'AssemblyFileVersion\("([^"]+)"\)') {
         $Version = $Matches[1] -replace '\.0$', ''
@@ -21,6 +23,8 @@ if (-not $Version) {
 
 & (Join-Path $PSScriptRoot "Build-Addin.ps1") -Configuration Release
 
+# Inno Setup is not always on PATH, so check the common install locations used
+# by system-wide and per-user installs.
 $innoCandidates = @()
 $isccCommand = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
 if ($isccCommand) {

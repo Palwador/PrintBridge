@@ -19,6 +19,8 @@ if (-not $UserSid) {
 function Set-StartupFlagForUser {
     param([string]$Sid)
 
+    # This is the per-user SOLIDWORKS "Start Up" checkbox. It is optional so
+    # manual registration does not force PrintBridge to load on every startup.
     $startupKey = [Microsoft.Win32.Registry]::Users.CreateSubKey("$Sid\Software\SOLIDWORKS\AddInsStartup\$addinGuid")
     $startupKey.SetValue("", 1, [Microsoft.Win32.RegistryValueKind]::DWord)
     $startupKey.Close()
@@ -26,6 +28,8 @@ function Set-StartupFlagForUser {
 
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    # COM/SOLIDWORKS add-in registration writes under HKLM, so relaunch elevated
+    # while preserving the original user's SID for the optional startup flag.
     $scriptPath = $MyInvocation.MyCommand.Path
     $arguments = @(
         "-NoExit",

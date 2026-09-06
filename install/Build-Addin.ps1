@@ -5,6 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# SOLIDWORKS keeps loaded add-in DLLs locked, so stop before MSBuild tries to
+# overwrite the release output.
 $solidWorks = Get-Process -Name SLDWORKS -ErrorAction SilentlyContinue
 if ($solidWorks) {
     throw "Close SOLIDWORKS before rebuilding. It is currently holding the add-in DLL open."

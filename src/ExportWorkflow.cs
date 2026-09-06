@@ -17,6 +17,8 @@ namespace SwPrototypeExporter
         Step
     }
 
+    // Owns the export pipeline after the SOLIDWORKS command is invoked: document/body discovery,
+    // filename generation, format-specific export routing, temporary-file cleanup, and slicer launch.
     internal sealed class ExportWorkflow
     {
         internal const string DialogTitle = "PrintBridge";
@@ -162,6 +164,8 @@ namespace SwPrototypeExporter
 
             if (request.UseTemporaryFile)
             {
+                // Cleanup runs only after a successful export so a failed attempt does not remove
+                // the user's most recent working temporary files.
                 CleanTemporaryExports(exportedFiles);
             }
 
@@ -496,6 +500,8 @@ namespace SwPrototypeExporter
 
             try
             {
+                // Keep the current export plus the newest remaining files. This makes temporary
+                // exports useful for quick retries without letting the folder grow forever.
                 List<FileInfo> files = Directory.EnumerateFiles(directory)
                     .Select(file => new FileInfo(file))
                     .Where(info => info.Exists)
@@ -588,6 +594,8 @@ namespace SwPrototypeExporter
 
             try
             {
+                // STEP AP is a global SOLIDWORKS user preference, so always restore the previous
+                // value after this export finishes.
                 Log("Setting STEP export protocol to AP214.");
                 _swApp.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, 214);
                 ExportSelectedBodyWithSaveAs(model, body, exportPath);
@@ -620,6 +628,8 @@ namespace SwPrototypeExporter
 
             if (format == ExportFormat.Stl)
             {
+                // SOLIDWORKS SaveAs was unreliable for selected-body STL exports in multi-body
+                // parts, so STL is written directly from the selected bodies' tessellation data.
                 ExportBodiesToBinaryStl(bodies, exportPath);
                 return;
             }
@@ -628,6 +638,8 @@ namespace SwPrototypeExporter
 
             try
             {
+                // STEP AP is a global SOLIDWORKS user preference, so always restore the previous
+                // value after this export finishes.
                 Log("Setting STEP export protocol to AP214.");
                 _swApp.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, 214);
 
@@ -658,6 +670,8 @@ namespace SwPrototypeExporter
                 throw new InvalidOperationException("No bodies were available to export.");
             }
 
+            // For STEP, SOLIDWORKS SaveAs honors selected bodies. The export selection is made
+            // immediately before SaveAs and cleared afterward to avoid leaving model state behind.
             model.ClearSelection2(true);
 
             try
@@ -772,6 +786,8 @@ namespace SwPrototypeExporter
             for (int i = 0; i < triangleCount; i++)
             {
                 int offset = i * 9;
+                // SOLIDWORKS tessellation coordinates are in meters. STL slicers normally treat
+                // unitless coordinates as millimeters, so convert meters to millimeters here.
                 triangles.Add(CreateStlTriangle(
                     values[offset + 0] * 1000.0f,
                     values[offset + 1] * 1000.0f,
@@ -851,6 +867,8 @@ namespace SwPrototypeExporter
 
             Log("Temporary export source body count: " + sourceBodies.Count);
 
+            // Some assembly and fallback paths cannot safely rely on selected-body SaveAs. In those
+            // cases, create a hidden part containing only the requested bodies and export that part.
             string originalTitle = originalModel.GetTitle();
             bool previousDocumentVisible = _swApp.GetDocumentVisible((int)swDocumentTypes_e.swDocPART);
             int previousStepAp = _swApp.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP);

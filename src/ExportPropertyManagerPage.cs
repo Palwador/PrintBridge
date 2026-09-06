@@ -15,6 +15,8 @@ namespace SwPrototypeExporter
 {
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.None)]
+    // SOLIDWORKS-hosted left-panel UI for PrintBridge. It keeps checkbox selections,
+    // graphics-area selections, body highlighting, and export controls in sync.
     public sealed class ExportPropertyManagerPage : PropertyManagerPage2Handler9
     {
         private const int GroupBodies = 10;
@@ -301,6 +303,8 @@ namespace SwPrototypeExporter
 
         private void SyncControlsFromSelection()
         {
+            // Selection can change from either a checkbox click or a model click. This flag keeps
+            // programmatic checkbox updates from recursively triggering more selection changes.
             _updatingControls = true;
             try
             {
@@ -472,6 +476,8 @@ namespace SwPrototypeExporter
         {
             try
             {
+                // Body appearance is changed only as a temporary preview. The original appearance is
+                // captured first so it can be restored when selection changes or the page closes.
                 RestoreBodyPreview();
 
                 foreach (int index in _selectedIndices)
@@ -680,6 +686,8 @@ namespace SwPrototypeExporter
 
         private bool QueueExportAfterClose()
         {
+            // Running the export while the PropertyManager page is still active made SOLIDWORKS
+            // unstable in testing. Capture the request now and run it from AfterClose instead.
             ExportRequest request = CreateExportRequestFromControls();
             if (request == null)
             {
@@ -750,6 +758,8 @@ namespace SwPrototypeExporter
                     return 0;
                 }
 
+                // SOLIDWORKS may report a face, feature, body, or component depending on exactly
+                // where the user clicked. FindBodyIndex normalizes those cases back to a body row.
                 object selectedObject = selectionMgr.GetSelectedObject6(count, -1);
                 Component2 selectedComponent = null;
                 try
@@ -824,6 +834,8 @@ namespace SwPrototypeExporter
 
             if (pendingRequest != null)
             {
+                // At this point the page is gone, event handlers are unhooked, and the preview has
+                // been restored. That leaves SOLIDWORKS in a cleaner state for SaveAs/export calls.
                 try
                 {
                     _workflow.Export(pendingRequest);

@@ -64,6 +64,8 @@ var
   ResultCode: Integer;
   DllPath: String;
 begin
+  { Unregister the old COM server before replacing the DLL. This keeps upgrades
+    from leaving SOLIDWORKS pointed at stale add-in registration data. }
   DllPath := ExpandConstant('{app}\SwPrototypeExporter.dll');
   if FileExists(DllPath) then
   begin
@@ -79,6 +81,8 @@ end;
 
 procedure DeleteOldProgramFiles();
 begin
+  { Clean only the installed program folder. User settings, logs, generated
+    icons, and temporary exports live under %APPDATA%\PrintBridge and are kept. }
   DeleteFile(ExpandConstant('{app}\SwPrototypeExporter.dll'));
   DeleteFile(ExpandConstant('{app}\SolidWorks.Interop.sldworks.dll'));
   DeleteFile(ExpandConstant('{app}\SolidWorks.Interop.swconst.dll'));
@@ -93,6 +97,8 @@ begin
 
   if IsSolidWorksRunning() then
   begin
+    { SOLIDWORKS locks loaded add-in DLLs, so updating while it is open can leave
+      a mixed old/new install. Stop early and let the user close SOLIDWORKS. }
     Result := 'Close SOLIDWORKS before installing or updating PrintBridge. SOLIDWORKS is currently holding the add-in files open.';
     Exit;
   end;
