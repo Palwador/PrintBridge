@@ -44,16 +44,20 @@ On Windows 11, go to:
 
 ```text
 Settings > Apps > Installed apps
-On Windows 10, go to:
-Settings > Apps > Apps & features
-You can also use the classic Control Panel on either version of Windows:
-Control Panel > Programs > Programs and Features
-Look for:
-PrintBridge SOLIDWORKS Add-in
-Uninstalling removes the installed add-in files from C:\Program Files\PrintBridge and unregisters PrintBridge from SOLIDWORKS.
-Disabling PrintBridge from Tools > Add-Ins inside SOLIDWORKS only stops the add-in from loading. It does not remove the installed files or Windows/SOLIDWORKS registration.
-User settings, logs, and temporary export files are stored under %APPDATA%\PrintBridge and are left in place when PrintBridge is uninstalled.
 ```
+On Windows 10, go to:
+```
+Control Panel > Programs > Programs and Features
+```
+Look for:
+```
+PrintBridge SOLIDWORKS Add-in
+```
+Uninstalling removes the installed add-in files from C:\Program Files\PrintBridge and unregisters PrintBridge from SOLIDWORKS.
+Disabling PrintBridge from Tools.
+
+Add-Ins inside SOLIDWORKS only stops the add-in from loading. It does not remove the installed files or Windows/SOLIDWORKS registration.
+User settings, logs, and temporary export files are stored under %APPDATA%\PrintBridge\TemporaryExports and are left in place when PrintBridge is uninstalled.
 
 ## Project Shape
 
@@ -63,7 +67,7 @@ User settings, logs, and temporary export files are stored under %APPDATA%\Print
 - `src/ExportDialog.cs` - Small Windows Forms dialog for body, format, folder, and slicer choices.
 - `src/SlicerDiscovery.cs` - Finds installed slicers from common install folders and Windows uninstall registry entries.
 - `src\AppPaths.cs` - Centralizes runtime paths under `%APPDATA%\PrintBridge`.
-- `src/SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\PrintBridge`.
+- `src/SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\PrintBridge\TemporaryExports`.
 - `install/Register-Addin.ps1` - Registers the compiled DLL with COM/SOLIDWORKS.
 - `install/Unregister-Addin.ps1` - Unregisters the add-in.
 - `install/Package-Installer.ps1` - Builds a Release DLL and packages a Windows installer.
