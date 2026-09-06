@@ -24,6 +24,7 @@ A SOLIDWORKS add-in for a faster prototype loop:
 
 ## Requirements
 
+- Windows required.
 - SOLIDWORKS installed locally. This project is set up for SOLIDWORKS 2025 x64 on this workstation.
 - Visual Studio with .NET Framework 4.8 targeting support.
 - Administrator PowerShell for add-in registration, because SOLIDWORKS add-ins are registered under HKLM.
