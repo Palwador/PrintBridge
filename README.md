@@ -49,7 +49,9 @@ On Windows 10, go to:
 ```
 Control Panel > Programs > Programs and Features
 ```
+
 Look for:
+
 ```
 PrintBridge SOLIDWORKS Add-in
 ```
@@ -63,11 +65,12 @@ User settings, logs, and temporary export files are stored under %APPDATA%\Print
 
 - `src/SwPrototypeExporter.csproj` - Visual Studio C# class library project.
 - `src/SwAddin.cs` - COM-visible SOLIDWORKS add-in entry point and toolbar/menu command.
+- `src/ExportPropertyManagerPage.cs` - SOLIDWORKS left-panel interface for selecting bodies, output settings, and slicer options.
 - `src/ExportWorkflow.cs` - Body discovery, versioned filename generation, export, and slicer launch.
-- `src/ExportDialog.cs` - Small Windows Forms dialog for body, format, folder, and slicer choices.
+- `src/ExportDialog.cs` - Fallback Windows Forms dialog used if the SOLIDWORKS left-panel interface cannot be opened.
 - `src/SlicerDiscovery.cs` - Finds installed slicers from common install folders and Windows uninstall registry entries.
 - `src\AppPaths.cs` - Centralizes runtime paths under `%APPDATA%\PrintBridge`.
-- `src/SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\PrintBridge\TemporaryExports`.
+- `src\SlicerSettings.cs` - Saves your last folder/slicer choices under `%APPDATA%\PrintBridge`.
 - `install/Register-Addin.ps1` - Registers the compiled DLL with COM/SOLIDWORKS.
 - `install/Unregister-Addin.ps1` - Unregisters the add-in.
 - `install/Package-Installer.ps1` - Builds a Release DLL and packages a Windows installer.
@@ -75,10 +78,16 @@ User settings, logs, and temporary export files are stored under %APPDATA%\Print
 
 ## Requirements
 
-- Windows required.
-- SOLIDWORKS installed locally. This project is set up for SOLIDWORKS 2025 x64 on this workstation.
+For users installing PrintBridge:
+
+- Windows required. PrintBridge is a Windows/SOLIDWORKS add-in.
+- SOLIDWORKS installed locally. PrintBridge was developed and tested with SOLIDWORKS 2025 x64.
+- Administrator permission may be required when running the installer, because SOLIDWORKS add-ins are registered system-wide.
+
+For developers building PrintBridge:
+
 - Visual Studio with .NET Framework 4.8 targeting support.
-- Administrator PowerShell for add-in registration, because SOLIDWORKS add-ins are registered under HKLM.
+- SOLIDWORKS 2025 x64 installed locally, including the SOLIDWORKS interop DLLs.
 
 The project references the SOLIDWORKS interop DLLs from:
 
@@ -86,25 +95,29 @@ The project references the SOLIDWORKS interop DLLs from:
 C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS
 ```
 
-That path exists on this machine.
+If SOLIDWORKS is installed somewhere else, update the reference paths in the project file.
 
 ## Build
 
 Open `src/SwPrototypeExporter.csproj` in Visual Studio and build `Release | x64`.
 
+SOLIDWORKS should be closed before building, because it can hold the add-in DLL open.
+
 Or close SOLIDWORKS and run:
 
 ```powershell
 .\install\Build-Addin.ps1 -Configuration Release
-```
 
+```
 The expected output is:
 
 ```text
 src\bin\x64\Release\SwPrototypeExporter.dll
 ```
 
-## Register
+## Register Manually
+
+This step is only needed when developing or testing PrintBridge without the installer. Normal users should install PrintBridge with the `.exe` installer instead.
 
 Open PowerShell as Administrator from the repository root and run:
 
@@ -135,26 +148,30 @@ Install Inno Setup 6 on the packaging machine, close SOLIDWORKS, then run:
 The installer is written to:
 
 ```text
-dist\PrintBridgeSetup-0.1.3.exe
+dist\PrintBridgeSetup-0.1.4.exe
 ```
 
-Upload that `.exe` to a GitHub Release. Users should download the installer, run it, open SOLIDWORKS, and enable `PrintBridge` in:
+Upload that .exe to a GitHub Release. Users should download the installer, close SOLIDWORKS, run the installer, open SOLIDWORKS, and enable PrintBridge in:
 
 ```text
 Tools > Add-Ins
 ```
 
-The installer copies the add-in to `Program Files`, registers it as a 64-bit COM/SOLIDWORKS add-in, and adds an uninstaller under Windows Apps & Features. It does not force the add-in to start automatically; users can check the `Start Up` box in SOLIDWORKS Add-Ins if they want that. Settings, logs, generated toolbar bitmaps, and temporary export files are written under `%APPDATA%\PrintBridge`, not beside the installed DLL.
+The installer copies the add-in to C:\Program Files\PrintBridge, registers it as a 64-bit COM/SOLIDWORKS add-in, and adds an uninstaller under Windows Apps & Features.
+If PrintBridge is already installed, the installer also acts as an updater: it checks that SOLIDWORKS is closed, unregisters the existing installed DLL, removes old installed program files, installs the new files, and registers the new DLL.
+The installer does not force the add-in to start automatically. Users can check the Start Up box in SOLIDWORKS Add-Ins if they want PrintBridge to load whenever SOLIDWORKS opens.
+Settings, logs, and generated toolbar/help icons are written under %APPDATA%\PrintBridge. Temporary export files are written under %APPDATA%\PrintBridge\TemporaryExports.
 
 ## Current Scope
 
-This starter version supports solid bodies in active part documents and visible resolved component bodies in active assembly documents. The next useful upgrades would be:
+PrintBridge currently supports solid bodies in active part documents and visible resolved component bodies in active assembly documents.
 
-- Add optional assembly-position-aware exports.
-- Add per-format options, especially STL resolution.
-- Add a persistent "favorite export folder per project" option.
-- Add an icon strip for a nicer SOLIDWORKS toolbar button.
-- Add a one-click mode that skips the dialog when a body is already selected.
+Possible future improvements include:
+
+- Improve assembly-position handling for more complex assembly export cases.
+- Add per-format export options, especially STL resolution.
+- Add a persistent favorite export folder per project.
+- Add a one-click mode that skips the panel when a body is already selected.
 
 ## Notes From SOLIDWORKS API Docs
 
@@ -162,4 +179,6 @@ SOLIDWORKS add-ins implement `ISwAddin`; SOLIDWORKS calls `ConnectToSW` when loa
 
 SOLIDWORKS `ICommandManager`/`ICommandGroup` is the right API for creating native toolbar and menu commands.
 
-For exporting STEP, SOLIDWORKS `IModelDocExtension.SaveAs`/`SaveAs2` exports the active model, but if bodies or faces are selected, it exports only the selected items. This scaffold relies on that behavior by selecting the chosen body immediately before STEP export. For STL, the add-in uses a temporary part containing only the selected body.
+For STEP exports, PrintBridge uses SOLIDWORKS `IModelDocExtension.SaveAs`/`SaveAs2`. STEP exports are forced to AP214 by temporarily setting `swUserPreferenceIntegerValue_e.swStepAP` to `214` around the export call.
+
+For STL exports from part documents, PrintBridge writes a binary STL from selected-body tessellation so selected-body exports do not accidentally include the entire part. Some non-part export paths use a temporary part containing only the selected body or bodies.
