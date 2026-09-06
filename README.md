@@ -32,7 +32,7 @@ Enable `Use temporary export file` when you want PrintBridge to send the file to
 
 ### Slicer
 
-The slicer selector shows slicer programs PrintBridge was able to find automatically. Use `Browse slicer` if your slicer is not listed or if you want to choose a specific executable manually.
+The slicer selector shows slicer programs PrintBridge detected automatically. Use `Browse slicer` if your slicer is not listed or if you want to choose a specific executable manually.
 
 Enable `Open in slicer after export` to launch the selected slicer with the exported file. Disable it if you only want to save the STL or STEP file.
 
