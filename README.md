@@ -2,7 +2,7 @@
 
 A SOLIDWORKS add-in for a faster prototype loop:
 
-1. Click a dedicated SOLIDWORKS command.
+1. Click the SOLIDWORKS button.
 2. Pick a solid body from the active part or from a resolved component in the active assembly.
 3. Export it as `.STL` or `.STEP`; STEP exports are forced to AP214.
 4. Save it with an editable file name and an incrementing suffix like `Bracket_Left_V001.STL`.
