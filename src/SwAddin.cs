@@ -28,6 +28,7 @@ namespace SwPrototypeExporter
         private ISldWorks _swApp;
         private ICommandManager _commandManager;
         private int _addinId;
+        private int _exportCommandId = -1;
 
         public SwAddin()
         {
@@ -148,7 +149,7 @@ namespace SwPrototypeExporter
             commandGroup.LargeIconList = icons.LargeIconList;
 
             int itemType = (int)swCommandItemType_e.swToolbarItem;
-            commandGroup.AddCommandItem2(
+            int exportCommandIndex = commandGroup.AddCommandItem2(
                 "PrintBridge",
                 -1,
                 "Export selected bodies for 3D printing",
@@ -162,8 +163,10 @@ namespace SwPrototypeExporter
             commandGroup.HasToolbar = true;
             commandGroup.HasMenu = false;
             commandGroup.Activate();
+            _exportCommandId = commandGroup.get_CommandID(exportCommandIndex);
 
             RemoveLegacyCommandTabs();
+            AddCommandToBuiltInTabs(_exportCommandId);
         }
 
         /*
@@ -181,31 +184,86 @@ namespace SwPrototypeExporter
             RemoveCommandTab((int)swDocumentTypes_e.swDocASSEMBLY, AddinTitle);
         }
 
-        private void AddCommandTab(int documentType, int exportCommandId)
+        private void AddCommandToBuiltInTabs(int exportCommandId)
         {
-            CommandTab existingTab = _commandManager.GetCommandTab(documentType, AddinTitle);
-            if (existingTab != null)
+            AddCommandToExistingCommandTab((int)swDocumentTypes_e.swDocPART, "Features", exportCommandId);
+            AddCommandToExistingCommandTab((int)swDocumentTypes_e.swDocASSEMBLY, "Assembly", exportCommandId);
+        }
+
+        private void AddCommandToExistingCommandTab(int documentType, string tabName, int exportCommandId)
+        {
+            if (_commandManager == null || exportCommandId <= 0)
             {
-                existingTab.Visible = true;
                 return;
             }
 
-            CommandTab commandTab = _commandManager.AddCommandTab(documentType, AddinTitle);
+            CommandTab commandTab = _commandManager.GetCommandTab(documentType, tabName);
             if (commandTab == null)
             {
+                Log("CommandManager tab not found for automatic PrintBridge placement: " + tabName);
+                return;
+            }
+
+            if (CommandTabContainsCommand(commandTab, exportCommandId))
+            {
+                Log("CommandManager tab already contains PrintBridge command: " + tabName);
                 return;
             }
 
             CommandTabBox commandTabBox = commandTab.AddCommandTabBox();
             if (commandTabBox == null)
             {
+                Log("Could not create CommandManager tab box for: " + tabName);
                 return;
             }
 
             int[] commandIds = { exportCommandId };
-            int[] textStyles = { (int)swCommandTabButtonTextDisplay_e.swCommandTabButton_TextHorizontal };
-            commandTabBox.AddCommands(commandIds, textStyles);
-            commandTab.Visible = true;
+            int[] textStyles = { (int)swCommandTabButtonTextDisplay_e.swCommandTabButton_TextBelow };
+            bool added = commandTabBox.AddCommands(commandIds, textStyles);
+            Log("Automatic PrintBridge tab placement for " + tabName + " returned: " + added);
+        }
+
+        private static bool CommandTabContainsCommand(CommandTab commandTab, int commandId)
+        {
+            object boxesObject = commandTab.CommandTabBoxes();
+            object[] boxes = boxesObject as object[];
+            if (boxes == null)
+            {
+                return false;
+            }
+
+            foreach (object boxObject in boxes)
+            {
+                CommandTabBox box = boxObject as CommandTabBox;
+                if (box == null)
+                {
+                    continue;
+                }
+
+                object commandIdsObject;
+                object textStylesObject;
+                int commandCount = box.GetCommands(out commandIdsObject, out textStylesObject);
+                if (commandCount <= 0)
+                {
+                    continue;
+                }
+
+                int[] commandIds = commandIdsObject as int[];
+                if (commandIds == null)
+                {
+                    continue;
+                }
+
+                foreach (int existingCommandId in commandIds)
+                {
+                    if (existingCommandId == commandId)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void AddFallbackMenuItems()
