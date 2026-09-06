@@ -8,6 +8,34 @@ A SOLIDWORKS add-in for a faster prototype loop:
 4. Save it with an editable file name and an incrementing suffix like `Bracket_Left_V001.STL`.
 5. Launch the slicer program you choose with the exported file path. Common slicers are detected automatically.
 
+## Using PrintBridge
+
+PrintBridge adds an `Export to 3D-printer` command to SOLIDWORKS. When opened, it shows a left-side panel where you choose what to export and where the exported file should go.
+
+### Bodies
+
+The body list shows the solid bodies available in the active part or assembly. Check one or more bodies to include them in the export. You can also select bodies directly in the SOLIDWORKS model; PrintBridge will update the checked list to match.
+
+Selected bodies are highlighted in the model so you can confirm what will be exported before pressing `Export`.
+
+### Output
+
+Choose whether to export as `STL` or `STEP AP214`.
+
+The folder field controls where normal exports are saved. Use `Browse folder` to choose a different destination.
+
+The file name field controls the exported file name. PrintBridge automatically uses version-style suffixes such as `_V001`, `_V002`, and `_V003` so repeated exports do not overwrite earlier prototypes.
+
+Enable `Export selected bodies as separate files` when you want each selected body written as its own export file. Leave it disabled when you want the selected bodies combined into one exported file.
+
+Enable `Use temporary export file` when you want PrintBridge to send the file to your slicer without keeping extra export files next to your SOLIDWORKS model. Temporary exports are stored under `%APPDATA%\PrintBridge\TemporaryExports` and old temporary files are cleaned up automatically after about 7 days.
+
+### Slicer
+
+The slicer selector shows slicer programs PrintBridge was able to find automatically. Use `Browse slicer` if your slicer is not listed or if you want to choose a specific executable manually.
+
+Enable `Open in slicer after export` to launch the selected slicer with the exported file. Disable it if you only want to save the STL or STEP file.
+
 ## Project Shape
 
 - `src/SwPrototypeExporter.csproj` - Visual Studio C# class library project.
