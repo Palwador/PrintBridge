@@ -125,12 +125,11 @@ namespace SwPrototypeExporter
             }
         }
 
-        internal void Export(ExportRequest request)
+        internal bool Export(ExportRequest request)
         {
             if (request == null || request.Model == null || request.SelectedItems == null || request.SelectedItems.Count == 0)
             {
-                MessageBox.Show("Choose at least one body to export.", DialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
+                return false;
             }
 
             SlicerSettings settings = SlicerSettings.Load();
@@ -152,7 +151,7 @@ namespace SwPrototypeExporter
 
             if (exportedFiles.Count == 0)
             {
-                return;
+                return false;
             }
 
             if (request.LaunchSlicer && !string.IsNullOrWhiteSpace(request.SlicerExecutable))
@@ -165,10 +164,7 @@ namespace SwPrototypeExporter
                 LaunchSlicer(request.SlicerExecutable, exportedFiles);
             }
 
-            string message = exportedFiles.Count == 1
-                ? "Exported:\r\n" + exportedFiles[0]
-                : "Exported " + exportedFiles.Count + " files:\r\n" + string.Join("\r\n", exportedFiles.ToArray());
-            MessageBox.Show(message, DialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return true;
         }
 
         private List<string> ExportOneFile(ExportRequest request)
@@ -182,7 +178,11 @@ namespace SwPrototypeExporter
                 return new List<string>();
             }
 
-            if (request.SelectedItems.Count == 1)
+            if (IsPartBodyRequest(request.Model, request.SelectedItems))
+            {
+                ExportPartSelectedBodiesWithSaveAs(request.Model, request.SelectedItems, exportPath, request.Format);
+            }
+            else if (request.SelectedItems.Count == 1)
             {
                 ExportSelectedBody(request.Model, request.SelectedItems[0], exportPath, request.Format);
             }
@@ -536,6 +536,12 @@ namespace SwPrototypeExporter
 
         private void ExportSelectedBody(ModelDoc2 model, BodyExportItem item, string exportPath, ExportFormat format)
         {
+            if (IsPartBodyRequest(model, new[] { item }))
+            {
+                ExportPartSelectedBodiesWithSaveAs(model, new[] { item }, exportPath, format);
+                return;
+            }
+
             if (format == ExportFormat.Stl || item.RequiresTemporaryPart)
             {
                 ExportBodyThroughTemporaryPart(model, item.Body, exportPath, format);
@@ -543,6 +549,14 @@ namespace SwPrototypeExporter
             }
 
             ExportStepSelectedBodyWithSaveAs(model, item.Body, exportPath);
+        }
+
+        private static bool IsPartBodyRequest(ModelDoc2 model, IEnumerable<BodyExportItem> items)
+        {
+            return model != null
+                && model.GetType() == (int)swDocumentTypes_e.swDocPART
+                && items != null
+                && items.All(item => item != null && item.Component == null);
         }
 
         private void ExportStepSelectedBodyWithSaveAs(ModelDoc2 model, Body2 body, string exportPath)
@@ -567,31 +581,233 @@ namespace SwPrototypeExporter
             }
         }
 
+        private void ExportPartSelectedBodiesWithSaveAs(ModelDoc2 model, IEnumerable<BodyExportItem> items, string exportPath, ExportFormat format)
+        {
+            List<Body2> bodies = items
+                .Where(item => item != null && item.Body != null)
+                .Select(item => item.Body)
+                .ToList();
+
+            if (bodies.Count == 0)
+            {
+                throw new InvalidOperationException("No bodies were available to export.");
+            }
+
+            Log("Exporting part selection with SaveAs. Format: " + format + ". Bodies: " + string.Join(", ", bodies.Select(GetBodyName).ToArray()));
+
+            if (format == ExportFormat.Stl)
+            {
+                ExportBodiesToBinaryStl(bodies, exportPath);
+                return;
+            }
+
+            int previousStepAp = _swApp.GetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP);
+
+            try
+            {
+                Log("Setting STEP export protocol to AP214.");
+                _swApp.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, 214);
+
+                ExportSelectedBodiesWithSaveAs(model, bodies, exportPath);
+            }
+            finally
+            {
+                try
+                {
+                    _swApp.SetUserPreferenceIntegerValue((int)swUserPreferenceIntegerValue_e.swStepAP, previousStepAp);
+                }
+                catch
+                {
+                }
+            }
+        }
+
         private static void ExportSelectedBodyWithSaveAs(ModelDoc2 model, Body2 body, string exportPath)
         {
-            model.ClearSelection2(true);
+            ExportSelectedBodiesWithSaveAs(model, new[] { body }, exportPath);
+        }
 
-            if (!body.Select2(false, null))
+        private static void ExportSelectedBodiesWithSaveAs(ModelDoc2 model, IEnumerable<Body2> bodies, string exportPath)
+        {
+            List<Body2> sourceBodies = bodies.Where(body => body != null).ToList();
+            if (sourceBodies.Count == 0)
             {
-                throw new InvalidOperationException("Could not select the requested body for export.");
+                throw new InvalidOperationException("No bodies were available to export.");
             }
-
-            int errors = 0;
-            int warnings = 0;
-            bool saved = model.Extension.SaveAs(
-                exportPath,
-                (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
-                (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
-                null,
-                ref errors,
-                ref warnings);
 
             model.ClearSelection2(true);
 
-            if (!saved || errors != 0)
+            try
             {
-                throw new InvalidOperationException("SOLIDWORKS could not export the body. Error code: " + errors + ", warning code: " + warnings + ".");
+                for (int i = 0; i < sourceBodies.Count; i++)
+                {
+                    Body2 body = sourceBodies[i];
+                    bool append = i > 0;
+                    if (!body.Select2(append, null))
+                    {
+                        throw new InvalidOperationException("Could not select the requested body for export.");
+                    }
+                }
+
+                int errors = 0;
+                int warnings = 0;
+                bool saved = model.Extension.SaveAs(
+                    exportPath,
+                    (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                    (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                    null,
+                    ref errors,
+                    ref warnings);
+
+                if (!saved || errors != 0)
+                {
+                    throw new InvalidOperationException("SOLIDWORKS could not export the body. Error code: " + errors + ", warning code: " + warnings + ".");
+                }
             }
+            finally
+            {
+                model.ClearSelection2(true);
+            }
+        }
+
+        private static void ExportBodiesToBinaryStl(IEnumerable<Body2> bodies, string exportPath)
+        {
+            List<StlTriangle> triangles = new List<StlTriangle>();
+
+            foreach (Body2 body in bodies.Where(body => body != null))
+            {
+                object[] faces = body.GetFaces() as object[];
+                if (faces == null)
+                {
+                    continue;
+                }
+
+                foreach (object faceObject in faces)
+                {
+                    Face2 face = faceObject as Face2;
+                    if (face == null)
+                    {
+                        continue;
+                    }
+
+                    AppendFaceTriangles(face, triangles);
+                }
+            }
+
+            if (triangles.Count == 0)
+            {
+                throw new InvalidOperationException("SOLIDWORKS did not return any STL triangles for the selected body.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(exportPath));
+
+            using (FileStream stream = File.Create(exportPath))
+            using (BinaryWriter writer = new BinaryWriter(stream))
+            {
+                byte[] header = new byte[80];
+                byte[] title = System.Text.Encoding.ASCII.GetBytes("PrintBridge binary STL");
+                Array.Copy(title, header, Math.Min(title.Length, header.Length));
+                writer.Write(header);
+                writer.Write((uint)triangles.Count);
+
+                foreach (StlTriangle triangle in triangles)
+                {
+                    writer.Write(triangle.NormalX);
+                    writer.Write(triangle.NormalY);
+                    writer.Write(triangle.NormalZ);
+                    writer.Write(triangle.X1);
+                    writer.Write(triangle.Y1);
+                    writer.Write(triangle.Z1);
+                    writer.Write(triangle.X2);
+                    writer.Write(triangle.Y2);
+                    writer.Write(triangle.Z2);
+                    writer.Write(triangle.X3);
+                    writer.Write(triangle.Y3);
+                    writer.Write(triangle.Z3);
+                    writer.Write((ushort)0);
+                }
+            }
+
+            Log("Wrote binary STL from tessellation. Triangles: " + triangles.Count + " File: " + exportPath);
+        }
+
+        private static void AppendFaceTriangles(Face2 face, ICollection<StlTriangle> triangles)
+        {
+            int triangleCount = face.GetTessTriangleCount();
+            if (triangleCount <= 0)
+            {
+                return;
+            }
+
+            object tessellation = face.GetTessTriangles(true);
+            float[] values = ToFloatArray(tessellation);
+            if (values == null || values.Length < triangleCount * 9)
+            {
+                return;
+            }
+
+            for (int i = 0; i < triangleCount; i++)
+            {
+                int offset = i * 9;
+                triangles.Add(CreateStlTriangle(
+                    values[offset + 0] * 1000.0f,
+                    values[offset + 1] * 1000.0f,
+                    values[offset + 2] * 1000.0f,
+                    values[offset + 3] * 1000.0f,
+                    values[offset + 4] * 1000.0f,
+                    values[offset + 5] * 1000.0f,
+                    values[offset + 6] * 1000.0f,
+                    values[offset + 7] * 1000.0f,
+                    values[offset + 8] * 1000.0f));
+            }
+        }
+
+        private static float[] ToFloatArray(object values)
+        {
+            float[] floatValues = values as float[];
+            if (floatValues != null)
+            {
+                return floatValues;
+            }
+
+            Array array = values as Array;
+            if (array == null)
+            {
+                return null;
+            }
+
+            floatValues = new float[array.Length];
+            for (int i = 0; i < array.Length; i++)
+            {
+                floatValues[i] = Convert.ToSingle(array.GetValue(i));
+            }
+
+            return floatValues;
+        }
+
+        private static StlTriangle CreateStlTriangle(
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3)
+        {
+            float ux = x2 - x1;
+            float uy = y2 - y1;
+            float uz = z2 - z1;
+            float vx = x3 - x1;
+            float vy = y3 - y1;
+            float vz = z3 - z1;
+            float nx = uy * vz - uz * vy;
+            float ny = uz * vx - ux * vz;
+            float nz = ux * vy - uy * vx;
+            float length = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz);
+            if (length > 0)
+            {
+                nx /= length;
+                ny /= length;
+                nz /= length;
+            }
+
+            return new StlTriangle(nx, ny, nz, x1, y1, z1, x2, y2, z2, x3, y3, z3);
         }
 
         private void ExportBodyThroughTemporaryPart(ModelDoc2 originalModel, Body2 body, string exportPath, ExportFormat format)
@@ -602,12 +818,15 @@ namespace SwPrototypeExporter
         private void ExportBodiesThroughTemporaryPart(ModelDoc2 originalModel, IEnumerable<Body2> bodies, string exportPath, ExportFormat format)
         {
             Log("Exporting " + format + " through temporary part. File: " + exportPath);
+            originalModel.ClearSelection2(true);
 
             List<Body2> sourceBodies = bodies.Where(body => body != null).ToList();
             if (sourceBodies.Count == 0)
             {
                 throw new InvalidOperationException("No bodies were available to export.");
             }
+
+            Log("Temporary export source body count: " + sourceBodies.Count);
 
             string originalTitle = originalModel.GetTitle();
             bool previousDocumentVisible = _swApp.GetDocumentVisible((int)swDocumentTypes_e.swDocPART);
@@ -644,6 +863,7 @@ namespace SwPrototypeExporter
 
                 foreach (Body2 sourceBody in sourceBodies)
                 {
+                    originalModel.ClearSelection2(true);
                     Body2 copiedBody = sourceBody.Copy2(true) as Body2;
                     if (copiedBody == null)
                     {
@@ -957,5 +1177,41 @@ namespace SwPrototypeExporter
         public bool LaunchSlicer { get; private set; }
         public bool ExportSeparateFiles { get; private set; }
         public bool UseTemporaryFile { get; private set; }
+    }
+
+    internal sealed class StlTriangle
+    {
+        public StlTriangle(
+            float normalX, float normalY, float normalZ,
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3)
+        {
+            NormalX = normalX;
+            NormalY = normalY;
+            NormalZ = normalZ;
+            X1 = x1;
+            Y1 = y1;
+            Z1 = z1;
+            X2 = x2;
+            Y2 = y2;
+            Z2 = z2;
+            X3 = x3;
+            Y3 = y3;
+            Z3 = z3;
+        }
+
+        public float NormalX { get; private set; }
+        public float NormalY { get; private set; }
+        public float NormalZ { get; private set; }
+        public float X1 { get; private set; }
+        public float Y1 { get; private set; }
+        public float Z1 { get; private set; }
+        public float X2 { get; private set; }
+        public float Y2 { get; private set; }
+        public float Z2 { get; private set; }
+        public float X3 { get; private set; }
+        public float Y3 { get; private set; }
+        public float Z3 { get; private set; }
     }
 }

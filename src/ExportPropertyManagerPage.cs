@@ -20,6 +20,7 @@ namespace SwPrototypeExporter
         private const int GroupBodies = 10;
         private const int GroupOutput = 20;
         private const int GroupSlicer = 30;
+        private const int GroupAction = 40;
         private const int ControlFormat = 201;
         private const int ControlFolder = 202;
         private const int ControlBrowseFolder = 203;
@@ -29,6 +30,7 @@ namespace SwPrototypeExporter
         private const int ControlSlicer = 301;
         private const int ControlBrowseSlicer = 302;
         private const int ControlLaunchSlicer = 303;
+        private const int ControlExport = 401;
         private const int BodyCheckboxIdStart = 1000;
         private const int SelectionMark = 777;
         private const string TemporaryExportHelpTitle = "Temporary export file";
@@ -54,11 +56,13 @@ namespace SwPrototypeExporter
         private IPropertyManagerPageCheckbox _useTemporaryFileCheck;
         private IPropertyManagerPageCombobox _slicerCombo;
         private IPropertyManagerPageCheckbox _launchSlicerCheck;
+        private IPropertyManagerPageButton _exportButton;
         private DPartDocEvents_Event _partEvents;
         private DAssemblyDocEvents_Event _assemblyEvents;
         private bool _updatingControls;
         private bool _fileNameEdited;
         private bool _handlingDocumentSelection;
+        private ExportRequest _pendingExportRequest;
 
         internal ExportPropertyManagerPage(ExportWorkflow workflow, ExportContext context)
         {
@@ -193,6 +197,18 @@ namespace SwPrototypeExporter
                 left,
                 controlOptions,
                 "Launch the selected slicer after exporting.") as IPropertyManagerPageCheckbox;
+
+            IPropertyManagerPageGroup actionGroup = _page.AddGroupBox(GroupAction, "Export", groupOptions) as IPropertyManagerPageGroup;
+            if (actionGroup != null)
+            {
+                _exportButton = actionGroup.AddControl2(
+                    ControlExport,
+                    (short)swPropertyManagerPageControlType_e.swControlType_Button,
+                    "Export",
+                    left,
+                    controlOptions,
+                    "Export the selected bodies.") as IPropertyManagerPageButton;
+            }
         }
 
         private void SeedInitialValues()
@@ -207,7 +223,6 @@ namespace SwPrototypeExporter
                 _launchSlicerCheck.Checked = _context.Settings.LaunchSlicer;
                 _useTemporaryFileCheck.Checked = _context.Settings.UseTemporaryFile;
                 PopulateSlicers(_context.Settings.SlicerPath);
-                SeedBodySelectionFromContext();
 
                 SyncControlsFromSelection();
                 UpdateOutputControlState();
@@ -216,23 +231,6 @@ namespace SwPrototypeExporter
             finally
             {
                 _updatingControls = false;
-            }
-        }
-
-        private void SeedBodySelectionFromContext()
-        {
-            if (_context.InitiallySelectedBody == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < _context.Bodies.Count; i++)
-            {
-                if (ReferenceEquals(_context.Bodies[i], _context.InitiallySelectedBody))
-                {
-                    _selectedIndices.Add(i);
-                    return;
-                }
             }
         }
 
@@ -312,7 +310,7 @@ namespace SwPrototypeExporter
                 }
 
                 ShowBodyPreview();
-                _page.EnableButton((int)swPropertyManagerPageButtons_e.swPropertyManagerPageButton_Ok, _selectedIndices.Count > 0);
+                UpdateActionControlState();
             }
             finally
             {
@@ -346,6 +344,19 @@ namespace SwPrototypeExporter
 
             SetControlEnabled(_folderText, !useTemporaryFile);
             SetControlEnabled(_browseFolderButton, !useTemporaryFile);
+            UpdateActionControlState();
+        }
+
+        private void UpdateActionControlState()
+        {
+            bool hasSelection = _selectedIndices.Count > 0;
+
+            if (_page != null)
+            {
+                _page.EnableButton((int)swPropertyManagerPageButtons_e.swPropertyManagerPageButton_Ok, hasSelection);
+            }
+
+            SetControlEnabled(_exportButton, hasSelection);
         }
 
         private static void SetControlEnabled(object control, bool enabled)
@@ -667,17 +678,40 @@ namespace SwPrototypeExporter
             }
         }
 
-        private void RunExport()
+        private bool QueueExportAfterClose()
         {
+            ExportRequest request = CreateExportRequestFromControls();
+            if (request == null)
+            {
+                return false;
+            }
+
+            _pendingExportRequest = request;
             RestoreBodyPreview();
-            _context.Model.GraphicsRedraw2();
+            return true;
+        }
+
+        private ExportRequest CreateExportRequestFromControls()
+        {
+            if (_selectedIndices.Count == 0)
+            {
+                return null;
+            }
 
             var selectedItems = _selectedIndices
+                .Distinct()
                 .Where(index => index >= 0 && index < _context.Bodies.Count)
                 .Select(index => _context.Bodies[index])
                 .ToList();
 
-            _workflow.Export(new ExportRequest(
+            if (selectedItems.Count == 0)
+            {
+                return null;
+            }
+
+            ExportWorkflow.Log("PropertyManager export selected bodies: " + string.Join(", ", selectedItems.Select(item => item.DisplayName).ToArray()));
+
+            return new ExportRequest(
                 _context.Model,
                 selectedItems,
                 _folderText.Text,
@@ -686,7 +720,7 @@ namespace SwPrototypeExporter
                 GetSelectedSlicerPath(),
                 _launchSlicerCheck.Checked,
                 _separateFilesCheck.Checked,
-                _useTemporaryFileCheck.Checked));
+                _useTemporaryFileCheck.Checked);
         }
 
         private static int ToSolidWorksColor(int red, int green, int blue)
@@ -738,6 +772,14 @@ namespace SwPrototypeExporter
             }
             finally
             {
+                try
+                {
+                    _context.Model.ClearSelection2(true);
+                }
+                catch
+                {
+                }
+
                 _handlingDocumentSelection = false;
             }
 
@@ -750,10 +792,12 @@ namespace SwPrototypeExporter
             {
                 try
                 {
-                    RunExport();
+                    QueueExportAfterClose();
                 }
                 catch (Exception ex)
                 {
+                    ShowBodyPreview();
+                    _context.Model.GraphicsRedraw2();
                     MessageBox.Show(ex.Message, ExportWorkflow.DialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -761,6 +805,9 @@ namespace SwPrototypeExporter
 
         public void AfterClose()
         {
+            ExportRequest pendingRequest = _pendingExportRequest;
+            _pendingExportRequest = null;
+
             try
             {
                 UnhookDocumentEvents();
@@ -773,6 +820,19 @@ namespace SwPrototypeExporter
             }
 
             LivePages.Remove(this);
+            _page = null;
+
+            if (pendingRequest != null)
+            {
+                try
+                {
+                    _workflow.Export(pendingRequest);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, ExportWorkflow.DialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         public bool OnSubmitSelection(int Id, object Selection, int SelType, ref string ItemText)
@@ -829,9 +889,26 @@ namespace SwPrototypeExporter
             {
                 BrowseSlicer();
             }
+            else if (Id == ControlExport)
+            {
+                try
+                {
+                    if (QueueExportAfterClose() && _page != null)
+                    {
+                        _page.Close(false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, ExportWorkflow.DialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
-        public void AfterActivation() { }
+        public void AfterActivation()
+        {
+            UpdateActionControlState();
+        }
         public int OnActiveXControlCreated(int Id, bool Status) { return 0; }
         public void OnCheckboxCheck(int Id, bool Checked)
         {
