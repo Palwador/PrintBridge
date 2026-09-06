@@ -36,6 +36,25 @@ The slicer selector shows slicer programs PrintBridge was able to find automatic
 
 Enable `Open in slicer after export` to launch the selected slicer with the exported file. Disable it if you only want to save the STL or STEP file.
 
+## Uninstall PrintBridge
+
+To completely remove the installed version of PrintBridge, use Windows' uninstall tool.
+
+On Windows 11, go to:
+
+```text
+Settings > Apps > Installed apps
+On Windows 10, go to:
+Settings > Apps > Apps & features
+You can also use the classic Control Panel on either version of Windows:
+Control Panel > Programs > Programs and Features
+Look for:
+PrintBridge SOLIDWORKS Add-in
+Uninstalling removes the installed add-in files from C:\Program Files\PrintBridge and unregisters PrintBridge from SOLIDWORKS.
+Disabling PrintBridge from Tools > Add-Ins inside SOLIDWORKS only stops the add-in from loading. It does not remove the installed files or Windows/SOLIDWORKS registration.
+User settings, logs, and temporary export files are stored under %APPDATA%\PrintBridge and are left in place when PrintBridge is uninstalled.
+```
+
 ## Project Shape
 
 - `src/SwPrototypeExporter.csproj` - Visual Studio C# class library project.
