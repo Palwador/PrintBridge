@@ -123,25 +123,6 @@ Tools > Add-Ins
 
 The installer copies the add-in to `Program Files`, registers it as a 64-bit COM/SOLIDWORKS add-in, and adds an uninstaller under Windows Apps & Features. It does not force the add-in to start automatically; users can check the `Start Up` box in SOLIDWORKS Add-Ins if they want that. Settings, logs, generated toolbar bitmaps, and temporary export files are written under `%APPDATA%\PrintBridge`, not beside the installed DLL.
 
-## Use
-
-1. Open a part document.
-2. Click `PrintBridge` from the add-in toolbar/menu.
-3. Check one or more bodies, or click bodies in the graphics area to sync the checkboxes, then choose the output format, destination folder, file name, and slicer app.
-4. Click the green checkmark.
-
-The add-in suggests the next available versioned filename in the destination folder. You can edit it before exporting. For example:
-
-```text
-MyPart_MainBody_V001.STL
-MyPart_MainBody_V002.STL
-MyPart_MainBody_V003.STL
-```
-
-The slicer field auto-detects common slicers such as PrusaSlicer, Bambu Studio, OrcaSlicer, SuperSlicer, and Cura. You can still browse to any `.exe` manually. Most slicers can be launched with a model file path as a command-line argument. If your slicer needs different command-line arguments, adjust `LaunchSlicer` in `src/ExportWorkflow.cs`.
-
-For STL exports, the add-in copies the selected body into a temporary hidden part and asks SOLIDWORKS to export that temporary part. That avoids empty selected-body STL exports in SOLIDWORKS. STEP exports use AP214 by temporarily setting `swUserPreferenceIntegerValue_e.swStepAP` to `214` around the export call.
-
 ## Current Scope
 
 This starter version supports solid bodies in active part documents and visible resolved component bodies in active assembly documents. The next useful upgrades would be:
