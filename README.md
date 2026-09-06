@@ -28,7 +28,7 @@ The file name field controls the exported file name. PrintBridge automatically u
 
 Enable `Export selected bodies as separate files` when you want each selected body written as its own export file. Leave it disabled when you want the selected bodies combined into one exported file.
 
-Enable `Use temporary export file` when you want PrintBridge to send the file to your slicer without keeping extra export files next to your SOLIDWORKS model. Temporary exports are stored under `%APPDATA%\PrintBridge\TemporaryExports` and old temporary files are cleaned up automatically after about 7 days.
+Enable `Use temporary export file` when you want PrintBridge to send the file to your slicer without keeping extra export files next to your SOLIDWORKS model. Temporary exports are stored under `%APPDATA%\PrintBridge\TemporaryExports`; PrintBridge keeps the five newest temporary export files and removes older ones automatically.
 
 ### Slicer
 

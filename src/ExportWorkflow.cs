@@ -20,6 +20,7 @@ namespace SwPrototypeExporter
     internal sealed class ExportWorkflow
     {
         internal const string DialogTitle = "PrintBridge";
+        private const int MaxTemporaryExportFileCount = 5;
         private readonly ISldWorks _swApp;
 
         public ExportWorkflow(ISldWorks swApp)
@@ -140,11 +141,6 @@ namespace SwPrototypeExporter
             settings.UseTemporaryFile = request.UseTemporaryFile;
             settings.Save();
 
-            if (request.UseTemporaryFile)
-            {
-                CleanOldTemporaryExports();
-            }
-
             List<string> exportedFiles = request.ExportSeparateFiles && request.SelectedItems.Count > 1
                 ? ExportSeparateFiles(request)
                 : ExportOneFile(request);
@@ -162,6 +158,11 @@ namespace SwPrototypeExporter
                 }
 
                 LaunchSlicer(request.SlicerExecutable, exportedFiles);
+            }
+
+            if (request.UseTemporaryFile)
+            {
+                CleanTemporaryExports(exportedFiles);
             }
 
             return true;
@@ -481,22 +482,44 @@ namespace SwPrototypeExporter
             return directory;
         }
 
-        private static void CleanOldTemporaryExports()
+        private static void CleanTemporaryExports(IEnumerable<string> currentExportPaths)
         {
             string directory = GetTemporaryExportDirectory();
-            DateTime cutoff = DateTime.Now.AddDays(-7);
+            var keepPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string currentExportPath in currentExportPaths ?? Enumerable.Empty<string>())
+            {
+                if (!string.IsNullOrWhiteSpace(currentExportPath))
+                {
+                    keepPaths.Add(Path.GetFullPath(currentExportPath));
+                }
+            }
 
             try
             {
-                foreach (string file in Directory.EnumerateFiles(directory))
+                List<FileInfo> files = Directory.EnumerateFiles(directory)
+                    .Select(file => new FileInfo(file))
+                    .Where(info => info.Exists)
+                    .OrderByDescending(info => info.LastWriteTimeUtc)
+                    .ThenByDescending(info => info.Name)
+                    .ToList();
+
+                foreach (FileInfo info in files)
                 {
                     try
                     {
-                        var info = new FileInfo(file);
-                        if (info.LastWriteTime < cutoff)
+                        string fullName = Path.GetFullPath(info.FullName);
+                        if (keepPaths.Contains(fullName))
                         {
-                            info.Delete();
+                            continue;
                         }
+
+                        if (keepPaths.Count < MaxTemporaryExportFileCount)
+                        {
+                            keepPaths.Add(fullName);
+                            continue;
+                        }
+
+                        info.Delete();
                     }
                     catch
                     {
